@@ -45,7 +45,7 @@ def evaluate(output_uri, output_uri_in_file,
               mount_output_to='/data'):
     return kfp.dsl.ContainerOp(
         name=step_name,
-        image='rochanmehrotra/testing_kf:train',
+        image='rochanmehrotra/testing_kf:evaluate',
         arguments=[
             '--model-path', output_uri,
             '--output1-path-file', output_uri_in_file,
