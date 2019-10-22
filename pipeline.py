@@ -41,7 +41,7 @@ def train(output_uri, output_uri_in_file,
 
 def evaluate(output_uri, output_uri_in_file,
                volume,
-               step_name='train',
+               step_name='evaluate',
               mount_output_to='/data'):
     return kfp.dsl.ContainerOp(
         name=step_name,
@@ -80,16 +80,16 @@ def mlp_pipeline(
         output_uri='/data',
         output_uri_in_file='/data/output1_path_file',
         volume=vop.volume
-    )
+    ).after(component_1)
     
     component_3 = evaluate(
         output_uri='/data',
         output_uri_in_file='/data/output1_path_file',
         volume=vop.volume
-    )
+    ).after(component_2)
     
     if __name__ == '__main__':
-    import kfp.compiler as compiler
-    compiler.Compiler().compile(mlp_pipeline, 'mlp_pipeline.tar.gz')
+        import kfp.compiler as compiler
+        compiler.Compiler().compile(mlp_pipeline, 'mlp_pipeline.tar.gz')
     
 
