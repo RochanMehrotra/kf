@@ -6,7 +6,7 @@ def task(volume,
     
     return kfp.dsl.ContainerOp(
         name=step_name,
-        image='rochanmehrotra/testing_kf:pytorch_lstm',
+        image='rochanmehrotra/testing_kf:c_prog',
         command=['python3', '/component/src/runner.py'],
         pvolumes={mount_output_to: volume}
     )
@@ -28,5 +28,5 @@ def mlp_pipeline(
     )
     
     if __name__ == '__main__':
-    import kfp.compiler as compiler
-    compiler.Compiler().compile(mlp_pipeline, 'c_pipeline.tar.gz')
+         import kfp.compiler as compiler
+         compiler.Compiler().compile(mlp_pipeline, 'c_pipeline.tar.gz')
