@@ -1,7 +1,8 @@
 import kfp
 
 def task(volume,
-         step_name='mlp_task'
+         step_name='mlp_task',
+         mount_output_to='/data'
          ):
     
     return kfp.dsl.ContainerOp(
