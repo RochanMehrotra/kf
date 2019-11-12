@@ -6,7 +6,7 @@ def generate_data(output_uri, output_uri_in_file,
               mount_output_to='/data'):
     return kfp.dsl.ContainerOp(
         name=step_name,
-        image='rochanmehrotra/testing_kf:generate_data1',
+        image='rochanmehrotra/testing_kf:generate_data',
         arguments=[
             '--output1-path', output_uri,
             '--output1-path-file', output_uri_in_file,
@@ -25,7 +25,7 @@ def train(output_uri, output_uri_in_file,
               mount_output_to='/data'):
     return kfp.dsl.ContainerOp(
         name=step_name,
-        image='rochanmehrotra/testing_kf:train1',
+        image='rochanmehrotra/testing_kf:train',
         arguments=[
             '--model-path', output_uri,
             '--output1-path-file', output_uri_in_file,
@@ -61,7 +61,7 @@ def evaluate(output_uri, output_uri_in_file,
 @kfp.dsl.pipeline(name='mlp pipeline', description='')
 def mlp_pipeline(
         rok_url,
-        pvc_size='1Gi'):
+        pvc_size='4Gi'):
     
     vop = kfp.dsl.VolumeOp(
         name='create-volume',
@@ -83,13 +83,12 @@ def mlp_pipeline(
     ).after(component_1)
     
     component_3 = evaluate(
-        output_uri='/data',
+        output_uri='/data/model.h5',
         output_uri_in_file='/data/output1_path_file',
         volume=vop.volume
     ).after(component_2)
-    
-    if __name__ == '__main__':
-        import kfp.compiler as compiler
-        compiler.Compiler().compile(mlp_pipeline, 'mlp_pipeline.tar.gz')
+if __name__ == '__main__':
+  import kfp.compiler as compiler
+  compiler.Compiler().compile(mlp_pipeline, 'mlp_pipeline.tar.gz')
     
 
