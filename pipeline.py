@@ -2,19 +2,18 @@ import kfp
 
 def generate_data(output_uri, output_uri_in_file,
                volume,
-               step_name='generate_data',
+               step_name='preprocess',
               mount_output_to='/data'):
     return kfp.dsl.ContainerOp(
         name=step_name,
-        image='rochanmehrotra/testing_kf:generate_data',
+        image='rochanmehrotra/kf_tf_example:preprocess',
         arguments=[
             '--output1-path', output_uri,
             '--output1-path-file', output_uri_in_file,
         ],
         command=['python3', '/component/src/data_generator.py'],
         file_outputs={
-            'output_file': output_uri,
-            'output_uri_in_file': output_uri_in_file,
+            'output_uri_in_file': '/data/output1_path_file',
         },
         pvolumes={mount_output_to: volume}
     )
@@ -25,16 +24,12 @@ def train(output_uri, output_uri_in_file,
               mount_output_to='/data'):
     return kfp.dsl.ContainerOp(
         name=step_name,
-        image='rochanmehrotra/testing_kf:train',
+        image='rochanmehrotra/kf_tf_example:train',
         arguments=[
             '--model-path', output_uri,
-            '--output1-path-file', output_uri_in_file,
+            '--output-path-file', output_uri_in_file,
         ],
         command=['python3', '/component/src/train.py'],
-        file_outputs={
-            'output_file': output_uri,
-            'output_uri_in_file': output_uri_in_file,
-        },
         pvolumes={mount_output_to: volume}
     )
 
@@ -45,16 +40,12 @@ def evaluate(output_uri, output_uri_in_file,
               mount_output_to='/data'):
     return kfp.dsl.ContainerOp(
         name=step_name,
-        image='rochanmehrotra/testing_kf:evaluate',
+        image='rochanmehrotra/kf_tf_example:evaluate',
         arguments=[
             '--model-path', output_uri,
-            '--output1-path-file', output_uri_in_file,
+            '--output-path-file', output_uri_in_file,
         ],
         command=['python3', '/component/src/evaluate.py'],
-        file_outputs={
-            'output_file': output_uri,
-            'output_uri_in_file': output_uri_in_file,
-        },
         pvolumes={mount_output_to: volume}
     )
 
@@ -87,8 +78,7 @@ def mlp_pipeline(
         output_uri_in_file='/data/output1_path_file',
         volume=vop.volume
     ).after(component_2)
-if __name__ == '__main__':
-  import kfp.compiler as compiler
-  compiler.Compiler().compile(mlp_pipeline, 'mlp_pipeline.tar.gz')
     
-
+if __name__ == '__main__':
+    import kfp.compiler as compiler
+    compiler.Compiler().compile(mlp_pipeline, 'mlp_pipeline.tar.gz')
