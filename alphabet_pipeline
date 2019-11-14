@@ -1,0 +1,123 @@
+import kfp
+
+def generate_data(output_uri,
+               volume,
+               step_name='preprocess',
+              mount_output_to='/data'):
+    return kfp.dsl.ContainerOp(
+        name=step_name,
+        image='rochanmehrotra/kf_tf_katib_example:preprocess',
+        arguments=[
+            '--output-path', output_uri
+        ],
+        command=['python3', '/component/src/generate_data.py'],
+        pvolumes={mount_output_to: volume}
+    )
+
+def train(X_path,Y_path,wordtoidx_path,outsize,maxlen,upscale,emb_model_path,rnn_drop,drop,hidden_size,loss,optim,metrics,batch_sz,epochs,lstm_model_path,
+               volume,
+               step_name='train',
+              mount_output_to='/data'):
+    return kfp.dsl.ContainerOp(
+        name=step_name,
+        image='rochanmehrotra/kf_tf_katib_example:train',
+        arguments=[
+          '--X-path',X_path,
+          '--Y-path',Y_path,
+          '--wordtoidx-path',wordtoidx_path,
+          '--outsize',outsize,
+          '--maxlen',maxlen,
+          '--upscale',upscale,
+          '--emb-model-path',emb_model_path,
+          '--rnn-drop',rnn_drop,
+          '--drop',drop,
+          '--hidden-size',hidden_size,
+          '--loss',loss,
+          '--optim',optim,
+          '--metrics',metrics,
+          '--batch-sz',batch_sz,
+          '--epochs',epochs,
+          '--lstm-model-path',lstm_model_path
+        ],
+        command=['python3', '/component/src/train.py'],
+        pvolumes={mount_output_to: volume}
+    )
+
+
+def evaluate(X_path, Y_path,idx_to_wrd_path,emb_h5_path,emb_json_path,lstm_h5_path,lstm_json_path,loss,optim,metrics,
+               volume,
+               step_name='evaluate',
+              mount_output_to='/data'):
+    return kfp.dsl.ContainerOp(
+        name=step_name,
+        image='rochanmehrotra/kf_tf_katib_example:evaluate',
+        arguments=[
+            '--X-path',X_path,
+            '--Y-path',Y_path,
+            '--idx-to-wrd-path',idx_to_wrd_path,
+            '--emb-h5-path',emb_h5_path,
+            '--emb-json-path',emb_json_path,
+            '--lstm-h5-path',lstm_h5_path,
+            '--lstm-json-path',lstm_json_path,
+            '--loss',loss,
+            '--optim',optim,
+            '--metrics',metrics
+        ],
+        command=['python3', '/component/src/evaluate.py'],
+        pvolumes={mount_output_to: volume}
+    )
+
+@kfp.dsl.pipeline(name='mlp pipeline', description='')
+def mlp_pipeline(
+        rok_url,
+        pvc_size='4Gi'):
+    
+    vop = kfp.dsl.VolumeOp(
+        name='create-volume',
+        resource_name='mlp_pipeline',
+        annotations={"rok/origin": rok_url},
+        size=pvc_size
+    )
+    
+    component_1 = generate_data(
+        output_uri='/data',
+        volume=vop.volume
+    )
+    
+    component_2 = train(
+        X_path='/data/x.npy',
+        Y_path='/data/y.npy',
+        wordtoidx_path='/data/word_to_idx.json',
+        outsize=10,
+        maxlen=26,
+        upscale=1,
+        emb_model_path='/data/',
+        rnn_drop=0.0,
+        drop=0.0,
+        hidden_size=50,
+        loss="sparse_categorical_crossentropy",
+        optim="adam",
+        metrics="accuracy",
+        batch_sz=10,
+        epochs=300,
+        lstm_model_path='/data/',
+        volume=vop.volume
+    ).after(component_1)
+    
+    component_3 = evaluate(
+        X_path='/data/x.npy',
+        Y_path='/data/y.npy',
+        idx_to_wrd_path='/data/idx_to_word.json',
+        emb_h5_path='/data/Embs_model.h5',
+        emb_json_path='/data/Embs_model.json',
+        lstm_h5_path='/data/model.h5',
+        lstm_json_path='/data/model.json',
+        loss="sparse_categorical_crossentropy",
+        optim="adam",
+        metrics="accuracy",
+        volume=vop.volume
+    ).after(component_2)
+    
+if __name__ == '__main__':
+    import kfp.compiler as compiler
+    compiler.Compiler().compile(mlp_pipeline, 'alphabet_pipeline.tar.gz')
