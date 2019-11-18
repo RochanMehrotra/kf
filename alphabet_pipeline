@@ -67,6 +67,32 @@ def evaluate(X_path, Y_path,idx_to_wrd_path,emb_h5_path,emb_json_path,lstm_h5_pa
         pvolumes={mount_output_to: volume}
     )
 
+
+
+
+def prediction(X_path, Y_path,idx_to_wrd_path,emb_h5_path,emb_json_path,lstm_h5_path,lstm_json_path,loss,optim,metrics,
+               volume,
+               step_name='prediction',
+              mount_output_to='/data'):
+    return kfp.dsl.ContainerOp(
+        name=step_name,
+        image='rochanmehrotra/kf_tf_katib_example:prediction',
+        arguments=[
+            '--X-path',X_path,
+            '--Y-path',Y_path,
+            '--idx-to-wrd-path',idx_to_wrd_path,
+            '--emb-h5-path',emb_h5_path,
+            '--emb-json-path',emb_json_path,
+            '--lstm-h5-path',lstm_h5_path,
+            '--lstm-json-path',lstm_json_path,
+            '--loss',loss,
+            '--optim',optim,
+            '--metrics',metrics
+        ],
+        command=['python3', '/component/src/prediction.py'],
+        pvolumes={mount_output_to: volume}
+    )
+
 @kfp.dsl.pipeline(name='mlp pipeline', description='')
 def mlp_pipeline(
         rok_url,
@@ -118,6 +144,24 @@ def mlp_pipeline(
         volume=vop.volume
     ).after(component_2)
     
+    component_4 = prediction(
+        X_path='/data/x.npy',
+        Y_path='/data/y.npy',
+        idx_to_wrd_path='/data/idx_to_word.json',
+        emb_h5_path='/data/Embs_model.h5',
+        emb_json_path='/data/Embs_model.json',
+        lstm_h5_path='/data/model.h5',
+        lstm_json_path='/data/model.json',
+        loss="sparse_categorical_crossentropy",
+        optim="adam",
+        metrics="accuracy",
+        volume=vop.volume
+    ).after(component_2)
+
+
+
+
+
 if __name__ == '__main__':
     import kfp.compiler as compiler
     compiler.Compiler().compile(mlp_pipeline, 'alphabet_pipeline.tar.gz')
