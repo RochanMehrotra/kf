@@ -6,7 +6,7 @@ def generate_data(output_uri,
               mount_output_to='/data'):
     return kfp.dsl.ContainerOp(
         name=step_name,
-        image='rochanmehrotra/kf_tf_katib_example:preprocess',
+        image='rochanmehrotra/kf_tf_katib_example:preprocessv2',
         arguments=[
             '--output-path', output_uri
         ],
@@ -20,7 +20,7 @@ def train(X_path,Y_path,wordtoidx_path,outsize,maxlen,upscale,emb_model_path,rnn
               mount_output_to='/data'):
     return kfp.dsl.ContainerOp(
         name=step_name,
-        image='rochanmehrotra/kf_tf_katib_example:train',
+        image='rochanmehrotra/kf_tf_katib_example:trainv2',
         arguments=[
           '--X-path',X_path,
           '--Y-path',Y_path,
