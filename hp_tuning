@@ -1,0 +1,69 @@
+apiVersion: "kubeflow.org/v1alpha3"
+kind: Experiment
+metadata:
+  namespace: kubeflow
+  name: tfjob
+spec:
+  parallelTrialCount: 2
+  maxTrialCount: 100
+  maxFailedTrialCount: 3
+  objective:
+    type: maximize
+    goal: 0.99
+    objectiveMetricName: accuracy_1
+    algorithm:
+      algorithmName: bayesianoptimization
+      algorithmSettings:
+        - name: "burn_in"
+          value: "5"
+    parameters:
+      - name: --rnn-drop
+        parameterType: double
+        feasibleSpace:
+          min: "0.1"
+          max: "0.7"
+      - name: --epochs
+        parameterType: int
+        feasibleSpace:
+          min: "50"
+          max: "300"
+      - name: --optimizer
+        parameterType: categorical
+        feasibleSpace:
+          list:
+          - sgd
+          - adam
+      - name: --drop
+        parameterType: double
+        feasibleSpace:
+          min: "0.1"
+          max: "0.7"
+      - name: --batch-sz
+        parameterType: int
+        feasibleSpace:
+          min: "1"
+          max: "5"
+
+  trialTemplate:
+    goTemplate:
+      rawTemplate: |-
+        apiVersion: batch/v1
+        kind: Job
+        metadata:
+          name: {{.Trial}}
+          namespace: {{.NameSpace}}
+        spec:
+          template:
+            spec:
+              containers:
+              - name: {{.Trial}}
+                image: rochanmehrotra/kf_tf_katib_example:hp_tuning
+                command:
+                - "python"
+                - "/component/src/hp_tuning.py"
+                {{- with .HyperParameters}}
+                {{- range .}}
+                - "{{.Name}}={{.Value}}"
+                {{- end}}
+                {{- end}}
+              restartPolicy: Never
